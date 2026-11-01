@@ -114,6 +114,9 @@ test('index.html: branded "nothing here", no slug, no list, no names', () => {
   assert.match(html, /<meta name="robots" content="noindex,nofollow">/);
   for (const s of [MARIA, ELENI, 'Maria', 'Eleni']) assert.ok(!html.includes(s), s);
   assert.doesNotMatch(html, /<(ul|ol|li|a)\b/);
+  for (const v of ['--bg', '--ink', '--accent', '--accent-text', '--tint', '--muted', '--muted-on-ink', '--line', '--shade', '--light']) {
+    assert.match(html, new RegExp(`<style>:root\\{[^}]*${v}:#[0-9a-f]{3,6}[;}]`), v);
+  }
 });
 
 test('robots.txt disallows everything; _headers sets noindex and caches assets', () => {

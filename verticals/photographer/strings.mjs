@@ -17,6 +17,7 @@ export const strings = {
     includesHeading: 'Περιλαμβάνει',
     eventDate: 'Ημερομηνία',
     venue: 'Χώρος',
+    seePackages: 'Δείτε τα πακέτα',
   },
   en: {
     bookText: "Hi, it's {names}. We'd like to book the {package} package for {date}.",
@@ -36,5 +37,6 @@ export const strings = {
     includesHeading: 'Includes',
     eventDate: 'Date',
     venue: 'Venue',
+    seePackages: 'See the packages',
   },
 };

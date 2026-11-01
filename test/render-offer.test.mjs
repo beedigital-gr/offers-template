@@ -414,3 +414,232 @@ test('core strings no longer carry the unused bookButton key', () => {
   assert.ok(!Object.hasOwn(strings.el, 'bookButton'));
   assert.ok(!Object.hasOwn(strings.en, 'bookButton'));
 });
+
+test('galleryRows: every count fills its rows (no half-empty row)', async () => {
+  const { galleryRows } = await import('../verticals/photographer/render.mjs');
+  const size = { solo: 1, pair: 2, trio: 3 };
+  const expected = { 0: [], 1: ['solo'], 2: ['pair'], 3: ['trio'], 4: ['pair', 'pair'], 5: ['trio', 'pair'], 6: ['trio', 'trio'], 7: ['trio', 'pair', 'pair'] };
+  for (const [n, rows] of Object.entries(expected)) assert.deepEqual(galleryRows(Number(n)), rows, `count ${n}`);
+  for (let n = 2; n <= 40; n++) {
+    const rows = galleryRows(n);
+    assert.equal(rows.reduce((s, r) => s + size[r], 0), n, `count ${n}`);
+    assert.ok(!rows.includes('solo'), `count ${n} never needs a solo`);
+  }
+  for (const bad of [-1, 1.5, NaN, '3']) assert.throws(() => galleryRows(bad), /galleryRows/);
+});
+
+test('gallery markup: rows per photo count, alternate rows flipped, every photo once', () => {
+  const photos = (n) => ['portfolio:03.jpg', ...Array.from({ length: n }, (_, i) => `x${i}.jpg`)];
+  const grid = (n) => /<section class="grid" data-count="(\d+)" data-rows="([^"]*)">/.exec(render(baseOffer({ photos: photos(n) }), brand));
+  assert.deepEqual(grid(1).slice(1), ['1', 'solo']);
+  assert.deepEqual(grid(2).slice(1), ['2', 'pair']);
+  assert.deepEqual(grid(5).slice(1), ['5', 'trio pair']);
+  const html = render(baseOffer({ photos: photos(5) }), brand);
+  assert.match(html, /<div class="row row-trio"><figure>(?:(?!<\/div>).)*<\/div><div class="row row-pair is-flipped">/);
+  for (let i = 0; i < 5; i++) assert.equal(html.split(`c-x${i}.jpg`).length - 1, 1, `x${i}`);
+});
+
+test('names: the joining word is set apart; other names are left alone', () => {
+  assert.match(render(offer(), brand), /<h1 class="names">Maria <span class="amp">&amp;<\/span> Nikos<\/h1>/);
+  const kai = render(baseOffer({ client: { names: 'Ελένη και Κώστας', email: '', phone: '' } }), brand);
+  assert.match(kai, /<h1 class="names">Ελένη <span class="amp">και<\/span> Κώστας<\/h1>/);
+  assert.match(render(baseOffer({ client: { names: 'Alexandra', email: '', phone: '' } }), brand), /<h1 class="names">Alexandra<\/h1>/);
+});
+
+test('packages: the recommended one comes first with the filled button; the others get the quiet one', () => {
+  const html = render(offer(), brand);
+  const order = [...html.matchAll(/<article [^>]*data-package="(\w+)"/g)].map((m) => m[1]);
+  assert.deepEqual(order, ['gold', 'silver', 'platinum']);
+  const gold = html.slice(html.indexOf('data-package="gold"'), html.indexOf('data-package="silver"'));
+  assert.match(gold, /<a class="btn book" href="https:\/\/wa\.me\//);
+  const silver = html.slice(html.indexOf('data-package="silver"'));
+  assert.match(silver, /<a class="btn btn-quiet book" href="https:\/\/wa\.me\//);
+  const single = render(baseOffer({ packages: [{ id: 'gold' }], recommended: 'gold' }), brand);
+  assert.doesNotMatch(single, /class="others"/);
+});
+
+test('phone dock links to the packages and is left out of an expired page', () => {
+  const html = render(offer(), brand);
+  assert.ok(html.includes(`<div class="dock"><a class="btn" href="#packages">${escapeHtml(t('el', 'seePackages', {}, brand))}</a></div>`));
+  assert.match(html, /<section class="packages" id="packages"/);
+  assert.doesNotMatch(render(offer(), brand, { today: '2027-01-01' }), /class="dock"/);
+  const css = readFileSync(new URL('../templates/offer.css', import.meta.url), 'utf8');
+  assert.match(css, /\.is-expired \.dock \{ display: none; \}/);
+  assert.match(css.slice(css.indexOf('@media print')), /\.dock \{ display: none !important; \}/);
+});
+
+test('derived palette: every text colour stays ≥ 4.5:1 on its surface, for edge-case brands too', async () => {
+  const { contrastRatio, derivePalette } = await import('../lib/page.mjs');
+  const brands = [
+    brand.colors,
+    { bg: '#ffffff', ink: '#767676', accent: '#000000' },
+    { bg: '#111111', ink: '#ffffff', accent: '#c9a27a' },
+    { bg: '#fff', ink: '#000', accent: '#949494' },
+    { bg: '#0b2a3a', ink: '#f4efe6', accent: '#e0b15c' },
+  ];
+  for (const c of brands) {
+    const d = derivePalette(c);
+    const label = JSON.stringify(c);
+    assert.ok(contrastRatio(c.ink, d.tint) >= 4.5, `ink on tint ${label}`);
+    assert.ok(contrastRatio(d.muted, c.bg) >= 4.5, `muted on bg ${label}`);
+    assert.ok(contrastRatio(d.muted, d.tint) >= 4.5, `muted on tint ${label}`);
+    assert.ok(contrastRatio(d.mutedOnInk, c.ink) >= 4.5, `muted on ink ${label}`);
+    assert.ok(contrastRatio(d.light, d.shade) >= 4.5, `names on the cover scrim ${label}`);
+  }
+});
+
+test('head: the inline :root block carries the derived colours', () => {
+  const html = render(offer(), brand);
+  for (const v of ['--tint', '--muted', '--muted-on-ink', '--line', '--shade', '--light']) assert.match(html, new RegExp(`${v}:#[0-9a-f]{6}[;}]`), v);
+});
+
+test('derivePalette/paletteStyle: malformed or missing colours throw naming the field; nothing reaches the <style>', async () => {
+  const { derivePalette, mixHex, paletteStyle } = await import('../lib/page.mjs');
+  const ok = { bg: '#ffffff', ink: '#000000', accent: '#9a6b3f' };
+  const cases = [
+    ['accent', '#ffgggg'], ['bg', 'white'], ['ink', '#12345'], ['accent', undefined],
+    ['accent', '#c00;}body{x:y'], ['bg', '#fff;}</style><script>alert(1)</script>'],
+  ];
+  for (const [key, value] of cases) {
+    const colors = { ...ok, [key]: value };
+    for (const fn of [derivePalette, paletteStyle]) {
+      assert.throws(() => fn(colors), (e) => !(e instanceof TypeError) && e.message.startsWith(`brand/brand.json: colors.${key}: `), `${fn.name} ${key}=${value}`);
+    }
+  }
+  assert.throws(() => derivePalette(undefined), /colors\.bg/);
+  assert.throws(() => mixHex('#ffgggg', '#000000', 0.5), /mixHex/);
+  assert.doesNotMatch(paletteStyle(ok), /NaN|undefined/);
+});
+
+test('derivePalette: a palette with no readable derivation throws instead of guessing', async () => {
+  const { derivePalette } = await import('../lib/page.mjs');
+  assert.throws(() => derivePalette({ bg: '#808080', ink: '#7a7a7a', accent: '#000000' }), /^Error: brand\/brand\.json: colors\.ink: contrast with colors\.bg is 1\.\d\d:1/);
+  assert.throws(() => renderOffer(offer(), { ...brand, colors: { bg: '#808080', ink: '#7a7a7a', accent: '#000000' } }), /colors\.ink/);
+});
+
+const PALETTES = [
+  brand.colors,
+  { bg: '#ffffff', ink: '#767676', accent: '#000000' },
+  { bg: '#111111', ink: '#ffffff', accent: '#c9a27a' },
+  { bg: '#fff', ink: '#000', accent: '#949494' },
+  { bg: '#0b2a3a', ink: '#f4efe6', accent: '#e0b15c' },
+];
+
+test('accentText: accent used as text reaches 4.5:1 on bg; unchanged when the accent already does', async () => {
+  const { contrastRatio, derivePalette } = await import('../lib/page.mjs');
+  for (const c of PALETTES) assert.ok(contrastRatio(derivePalette(c).accentText, c.bg) >= 4.5, JSON.stringify(c));
+  assert.equal(derivePalette({ bg: '#ffffff', ink: '#000000', accent: '#2a4d7a' }).accentText, '#2a4d7a');
+  const css = readFileSync(new URL('../templates/offer.css', import.meta.url), 'utf8');
+  assert.match(css, /\.names \.amp \{ color: var\(--accent-text\); \}/);
+  assert.doesNotMatch(css, /[{;]\s*color:\s*var\(--accent\)/, 'no text coloured with the raw accent');
+});
+
+test('head: --line is ink over bg; --shade is the darker and --light the lighter brand colour', async () => {
+  const { mixHex } = await import('../lib/page.mjs');
+  const vars = (html) => Object.fromEntries([...html.matchAll(/--([\w-]+):(#[0-9a-f]{3,6})/g)].map((m) => [m[1], m[2]]));
+  const light = vars(render(offer(), brand));
+  assert.equal(light.line, mixHex(brand.colors.ink, brand.colors.bg, 0.16));
+  assert.equal(light.shade, brand.colors.ink);
+  assert.equal(light.light, brand.colors.bg);
+  const dark = vars(render(offer(), { ...brand, colors: { bg: '#111111', ink: '#ffffff', accent: '#c9a27a' } }));
+  assert.equal(dark.shade, '#111111');
+  assert.equal(dark.light, '#ffffff');
+  assert.equal(dark.line, mixHex('#ffffff', '#111111', 0.16));
+  assert.match(dark['accent-text'], /^#[0-9a-f]{6}$/);
+});
+
+test('names: one joiner only; English "and", three-part names and markup in names', () => {
+  const h1 = (names) => /<h1 class="names">(.*?)<\/h1>/.exec(render(baseOffer({ client: { names, email: '', phone: '' } }), brand))[1];
+  assert.equal(h1('Emma and James'), 'Emma <span class="amp">and</span> James');
+  assert.equal(h1('Anna & Petros & Maria'), 'Anna &amp; Petros &amp; Maria');
+  assert.equal(h1('Ελένη και Κώστας & Νίκος'), 'Ελένη και Κώστας &amp; Νίκος');
+  assert.equal(h1('<b>Anna</b> & Petros'), '&lt;b&gt;Anna&lt;/b&gt; <span class="amp">&amp;</span> Petros');
+  assert.equal(h1('Sandra Andrews'), 'Sandra Andrews');
+});
+
+test('gallery: 7 photos → trio, pair, pair; flips alternate; alt text numbers 2..8 of 8 in order', () => {
+  const photos = ['portfolio:03.jpg', ...Array.from({ length: 7 }, (_, i) => `x${i}.jpg`)];
+  const html = render(baseOffer({ photos }), brand);
+  const rows = [...html.matchAll(/<div class="(row [^"]*)">/g)].map((m) => m[1]);
+  assert.deepEqual(rows, ['row row-trio', 'row row-pair is-flipped', 'row row-pair']);
+  const grid = html.slice(html.indexOf('<section class="grid"'), html.indexOf('</section>', html.indexOf('<section class="grid"')));
+  const alts = [...grid.matchAll(/<img src="([^"]*)" alt="([^"]*)"/g)];
+  assert.deepEqual(alts.map((m) => m[1].split('/').pop()), Array.from({ length: 7 }, (_, i) => `c-x${i}.jpg`));
+  assert.deepEqual(alts.map((m) => m[2]), Array.from({ length: 7 }, (_, i) => escapeHtml(t('el', 'photoAlt', { brand: brand.name, n: i + 2, total: 8 }, brand))));
+});
+
+test('offer.css: expired pages drop the dock padding at the foot of the contact block', () => {
+  const css = readFileSync(new URL('../templates/offer.css', import.meta.url), 'utf8');
+  assert.match(css, /\.contact \{[^}]*padding-block:[^;}]*var\(--dock-h\)/);
+  assert.match(css, /\.is-expired \.contact \{ padding-bottom: calc\(3rem \+ env\(safe-area-inset-bottom\)\); \}/);
+});
+
+function runDock({ withObserver = true } = {}) {
+  const els = Object.fromEntries(['.dock', '.opening', '.packages'].map((s) => [s, { name: s }]));
+  const dockClasses = new Set();
+  els['.dock'].classList = { toggle: (c, force) => (force ? dockClasses.add(c) : dockClasses.delete(c)) };
+  const observers = new Map();
+  class FakeObserver {
+    constructor(cb) { this.cb = cb; }
+    observe(el) { observers.set(el.name, this.cb); }
+  }
+  const window = { print() {} };
+  if (withObserver) window.IntersectionObserver = FakeObserver;
+  const context = {
+    document: {
+      body: { dataset: { validUntil: '2099-12-31' }, classList: { add() {} } },
+      querySelector: (s) => els[s] ?? null,
+      querySelectorAll: () => [],
+    },
+    window,
+    Date,
+    String,
+  };
+  vm.runInNewContext(readFileSync(new URL('../templates/offer.js', import.meta.url), 'utf8'), context);
+  const fire = (name, isIntersecting, top) => observers.get(name)([{ isIntersecting, boundingClientRect: { top } }]);
+  return { away: () => dockClasses.has('is-away'), fire, observers };
+}
+
+test('offer.js dock: hidden on the cover, shown between cover and packages, hidden at and past the packages', () => {
+  const d = runDock();
+  assert.deepEqual([...d.observers.keys()].sort(), ['.opening', '.packages']);
+  assert.equal(d.away(), true, 'starts hidden: the cover is on screen');
+  d.fire('.opening', true, 0);
+  d.fire('.packages', false, 2000);
+  assert.equal(d.away(), true, 'cover visible');
+  d.fire('.opening', false, -900);
+  assert.equal(d.away(), false, 'between cover and packages');
+  d.fire('.packages', true, 300);
+  assert.equal(d.away(), true, 'packages in view');
+  d.fire('.packages', false, -1500);
+  assert.equal(d.away(), true, 'scrolled past the packages');
+  d.fire('.packages', false, 1200);
+  assert.equal(d.away(), false, 'scrolled back up above the packages');
+});
+
+test('offer.js dock: without IntersectionObserver nothing throws and the dock stays visible', () => {
+  const d = runDock({ withObserver: false });
+  assert.equal(d.observers.size, 0);
+  assert.equal(d.away(), false);
+});
+
+test('offer.css: outside .is-away, expiry and media queries the dock is never hidden (the no-JS path)', () => {
+  const css = readFileSync(new URL('../templates/offer.css', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  let top = '';
+  let depth = 0;
+  let inMedia = 0;
+  for (let i = 0; i < css.length; i++) {
+    if (depth === 0 && css.startsWith('@media', i)) inMedia = 1;
+    const c = css[i];
+    if (c === '{') depth++;
+    if (!inMedia) top += c;
+    if (c === '}') { depth--; if (depth === 0) inMedia = 0; }
+  }
+  const rules = [...top.matchAll(/([^{}]+)\{([^}]*)\}/g)].map((m) => ({ sel: m[1].trim(), body: m[2] }));
+  const dockRules = rules.filter((r) => /\.dock\b/.test(r.sel));
+  assert.ok(dockRules.some((r) => r.sel === '.dock' && /position:\s*fixed/.test(r.body)), 'the base .dock rule is at top level');
+  for (const r of dockRules) {
+    if (/\.is-away|\.is-expired/.test(r.sel)) continue;
+    assert.doesNotMatch(r.body, /display:\s*none|visibility:\s*hidden|opacity:\s*0\b/, r.sel);
+  }
+});

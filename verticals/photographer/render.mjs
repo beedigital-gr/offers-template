@@ -27,7 +27,7 @@ export function photosFor(offer, brand) {
   return photos;
 }
 
-function bookLinks(offer, brand, ctx, pkgName) {
+function bookLinks(offer, brand, ctx, pkgName, primary) {
   const names = offer.client.names;
   const date = offer.event.date ? ctx.date(offer.event.date) : null;
   const vars = { names, package: pkgName, date };
@@ -39,10 +39,10 @@ function bookLinks(offer, brand, ctx, pkgName) {
   if (ctx.expired) return '';
   const forPkg = `<span class="vh"> ${esc(ctx.t('forPackage', { package: pkgName }))}</span>`;
   const out = [];
-  if (wa) out.push(`<a class="btn book" href="${esc(wa)}">${esc(ctx.t('bookByWhatsapp'))}${forPkg}</a>`);
+  if (wa) out.push(`<a class="${primary ? 'btn book' : 'btn btn-quiet book'}" href="${esc(wa)}">${esc(ctx.t('bookByWhatsapp'))}${forPkg}</a>`);
   if (mail) {
     const label = wa ? ctx.t('bookOrEmail') : ctx.t('bookByEmail');
-    out.push(`<a class="${wa ? 'book book-alt' : 'btn book'}" href="${esc(mail)}">${esc(label)}${forPkg}</a>`);
+    out.push(`<a class="${wa ? 'book book-alt' : primary ? 'btn book' : 'btn btn-quiet book'}" href="${esc(mail)}">${esc(label)}${forPkg}</a>`);
   }
   return `<div class="actions">${out.join('')}</div>`;
 }
@@ -54,9 +54,11 @@ function tier(offer, brand, ctx, entry, recommended) {
   const includes = pkg.includes[ctx.lang];
   const isRec = entry.id === recommended;
   return `<article class="tier${isRec ? ' is-recommended' : ''}" data-package="${esc(entry.id)}"${isRec ? ' data-recommended' : ''}>
-<header class="tier-head">${isRec ? `<p class="tag">${esc(ctx.t('recommended'))}</p>` : ''}<h3 id="pkg-${esc(entry.id)}">${esc(name)}</h3><p class="price">${esc(ctx.money(packagePrice(offer, brand, entry.id)))}</p></header>
+<header class="tier-head"><h3 id="pkg-${esc(entry.id)}">${esc(name)}</h3>${isRec ? `<p class="tag">${esc(ctx.t('recommended'))}</p>` : ''}<p class="price">${esc(ctx.money(packagePrice(offer, brand, entry.id)))}</p></header>
+<div class="tier-body">
 ${includes.length ? `<ul class="includes" aria-label="${esc(ctx.t('includesHeading'))}">${includes.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}
-${bookLinks(offer, brand, ctx, name)}
+${bookLinks(offer, brand, ctx, name, isRec)}
+</div>
 </article>`;
 }
 
@@ -66,11 +68,36 @@ function letter(message, brandName) {
   return `<section class="letter">${paras.join('')}<p class="sign">${esc(brandName)}</p></section>`;
 }
 
+export function galleryRows(count) {
+  if (!Number.isInteger(count) || count < 0) throw new Error(`galleryRows: count must be a whole number ≥ 0, got ${count}`);
+  if (count === 0) return [];
+  if (count === 1) return ['solo'];
+  const trios = count % 3 === 1 ? (count - 4) / 3 : Math.floor(count / 3);
+  const pairs = (count - trios * 3) / 2;
+  return [...Array(trios).fill('trio'), ...Array(pairs).fill('pair')];
+}
+
+const SIZE = { solo: 1, pair: 2, trio: 3 };
+
 function photoGrid(photos, brand, ctx) {
   const rest = photos.slice(1);
-  if (rest.length === 0) return '';
-  const imgs = rest.map((entry, i) => `<figure><img src="${esc(ctx.photoSrc(entry))}" alt="${esc(ctx.t('photoAlt', { brand: brand.name, n: i + 2, total: photos.length }))}" loading="lazy" decoding="async"></figure>`);
-  return `<section class="grid" data-count="${rest.length}">${imgs.join('')}</section>`;
+  const rows = galleryRows(rest.length);
+  if (rows.length === 0) return '';
+  const figure = (entry, i) => `<figure><img src="${esc(ctx.photoSrc(entry))}" alt="${esc(ctx.t('photoAlt', { brand: brand.name, n: i + 2, total: photos.length }))}" loading="lazy" decoding="async"></figure>`;
+  let at = 0;
+  const html = rows.map((kind, r) => {
+    const figs = rest.slice(at, at + SIZE[kind]).map((entry, j) => figure(entry, at + j));
+    at += SIZE[kind];
+    return `<div class="row row-${kind}${r % 2 ? ' is-flipped' : ''}">${figs.join('')}</div>`;
+  });
+  return `<section class="grid" data-count="${rest.length}" data-rows="${rows.join(' ')}">${html.join('')}</section>`;
+}
+
+function namesHtml(names) {
+  const parts = names.trim().split(/\s+(&|και|and)\s+/iu);
+  if (parts.length !== 3) return esc(names);
+  const [first, joiner, second] = parts;
+  return `${esc(first)} <span class="amp">${esc(joiner)}</span> ${esc(second)}`;
 }
 
 function contact(offer, brand, ctx) {
@@ -110,26 +137,34 @@ export function renderPage(offer, brand, ctx) {
   if (depositSet && !isHttpsUrl(offer.depositLink)) throw new Error(`${offer.slug}: depositLink must be empty or a https:// link, got ${JSON.stringify(offer.depositLink)}`);
   const deposit = depositSet && !ctx.expired ? offer.depositLink : null;
 
-  const body = `<header class="masthead"><p class="wordmark">${esc(brand.name)}</p></header>
-<main>
-<figure class="cover"><img src="${esc(ctx.photoSrc(photos[0]))}" alt="${esc(ctx.t('photoAlt', { brand: brand.name, n: 1, total: photos.length }))}" fetchpriority="high" decoding="async"></figure>
-<section class="intro">
-<h1 class="names">${esc(offer.client.names)}</h1>
+  const rec = offer.packages.find((p) => p.id === recommended);
+  const others = offer.packages.filter((p) => p.id !== recommended);
+
+  const body = `<header class="opening">
+<p class="wordmark">${esc(brand.name)}</p>
+<div class="cover"><img src="${esc(ctx.photoSrc(photos[0]))}" alt="${esc(ctx.t('photoAlt', { brand: brand.name, n: 1, total: photos.length }))}" fetchpriority="high" decoding="async"><h1 class="names">${namesHtml(offer.client.names)}</h1></div>
+<div class="intro">
 ${facts.length ? `<dl class="facts">${facts.join('')}</dl>` : ''}
 <p class="valid">${esc(ctx.t('validUntil', { date: ctx.date(offer.validUntil) }))}</p>
-</section>
+</div>
+</header>
+<main>
 ${letter(offer.message, brand.name)}
 ${photoGrid(photos, brand, ctx)}
-<section class="packages" aria-labelledby="h-packages">
+<section class="packages" id="packages" aria-labelledby="h-packages">
 <h2 id="h-packages">${esc(ctx.t('packagesHeading'))}</h2>
 <div class="tiers" data-count="${offer.packages.length}">
-${offer.packages.map((p) => tier(offer, brand, ctx, p, recommended)).join('\n')}
+${tier(offer, brand, ctx, rec, recommended)}
+${others.length ? `<div class="others" data-count="${others.length}">
+${others.map((p) => tier(offer, brand, ctx, p, recommended)).join('\n')}
+</div>` : ''}
 </div>
 </section>
 ${addons.length ? `<section class="addons" aria-labelledby="h-addons"><h2 id="h-addons">${esc(ctx.t('addonsHeading'))}</h2><ul>${addons.map((a) => `<li><span>${esc(a.name[lang])}</span><span class="price">+${esc(ctx.money(a.price))}</span></li>`).join('')}</ul></section>` : ''}
 ${`<section class="terms" aria-labelledby="h-terms"><h2 id="h-terms">${esc(ctx.t('termsHeading'))}</h2>${terms.length ? `<ul>${terms.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}<p class="vat">${esc(ctx.t(vat))}</p></section>`}
 ${deposit ? `<section class="deposit"><a class="btn btn-quiet" href="${esc(deposit)}">${esc(ctx.t('depositButton'))}</a></section>` : ''}
 </main>
+${ctx.expired ? '' : `<div class="dock"><a class="btn" href="#packages">${esc(ctx.t('seePackages'))}</a></div>`}
 ${contact(offer, brand, ctx)}`;
 
   return {

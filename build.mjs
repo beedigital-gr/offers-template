@@ -4,7 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { loadBrand, loadOffers } from './lib/load.mjs';
 import { resolvePhoto, validateAll } from './lib/validate.mjs';
 import { photoOutputName, photosFor, renderOffer } from './lib/render-offer.mjs';
-import { isIsoDate } from './lib/page.mjs';
+import { isIsoDate, paletteStyle } from './lib/page.mjs';
 import { escapeHtml as esc } from './lib/html.mjs';
 import { t } from './lib/strings.mjs';
 import { FILE } from './lib/record.mjs';
@@ -38,7 +38,6 @@ export function dateClashes(offers) {
 
 function indexPage(brand) {
   const lang = brand.defaultLanguage;
-  const { bg, ink, accent } = brand.colors;
   return `<!doctype html>
 <html lang="${esc(lang)}">
 <head>
@@ -46,7 +45,7 @@ function indexPage(brand) {
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title>${esc(brand.name)}</title>
-<style>:root{--bg:${bg};--ink:${ink};--accent:${accent}}</style>
+<style>${paletteStyle(brand.colors)}</style>
 <link rel="stylesheet" href="/_assets/offer.css">
 </head>
 <body>
