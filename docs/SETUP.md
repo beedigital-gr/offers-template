@@ -55,7 +55,36 @@ These are overwritten by upstream updates; neither the photographer nor the chat
 - [ ] Connect Gmail, "Always allow" (needed by the inbox task).
 - [ ] Create a ChatGPT Project named "Offers". Paste `docs/PROJECT-INSTRUCTIONS.md` into its
       instructions. Put the Project URL in `brand.chatgptProjectUrl`.
-- [ ] Set up the inbox scheduled task (`docs/INBOX-TASK.md`, Task 6b).
+
+## Inbox to offer (`docs/INBOX-TASK.md`)
+- [ ] Labels: create `Offers/new` and `Offers/needs-you` in the Gmail account the inquiries reach
+      (write that account in the client record). In Gmail search they are `offers-new` and
+      `offers-needs-you`.
+- [ ] Gmail → Settings → Filters → Create a filter that matches only their inquiries, then "Apply
+      the label" `Offers/new` and "Never send it to Spam". Use their real inquiry sources, for
+      example `from:(wordpress@<their-domain>) subject:(Νέο μήνυμα)` for a contact form, or
+      `to:(booking@<their-domain>)` for a booking address. Search a real past inquiry with the same
+      criteria first and confirm it matches and nothing else does (GitHub notifications matched a
+      loose `subject:` search in the spike).
+- [ ] Pre-approve once, "Always allow", so the hourly run never stops on a prompt. Gmail: search,
+      read, create draft, modify labels. GitHub: read files, create branch, commit, open pull
+      request, read checks.
+- [ ] ChatGPT → Scheduled → Create: every 1 hour, Europe/Athens, the prompt from
+      `docs/INBOX-TASK.md` in their language, with `<owner>/<repo>` replaced by their repo. Create
+      it inside the Offers Project if the form allows it. Open check for the spike: can a
+      scheduled task live in a Project? _yes/no_
+- [ ] Test: send one inquiry from a second address (not theirs) through
+      their real contact form if they have one. Confirm `label:offers-new` finds it in Gmail
+      search. Wait for the run, or say "check my inquiries" in Offers. Expect: one PR with a green
+      check and `gmail-thread:` in its body, one reply draft in that thread with `[LINK]`, the
+      label gone, no permission prompt. Record where the run summary shows up and whether a
+      notification arrives on the phone: _where / yes-no_. Then send a mail that is not an
+      inquiry and confirm it gets `Offers/needs-you`. Close the test PR without merging and delete
+      the draft.
+- [ ] Tell the photographer: check the To: of each reply draft before sending (contact forms send
+      from the site's own address); look at `Offers/needs-you` now and then; a day with no
+      summary or notification means something is stuck, so say "check my inquiries" in Offers to
+      see the error.
 
 ## First real offer, together
 - [ ] They make their first real offer themselves from `docs/HOWTO.el.md` (or `.en.md`) while we
