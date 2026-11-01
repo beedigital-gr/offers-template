@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "vertical": "photographer",
+  "name": "Markou Photography",
+  "colors": { "bg": "#f6f2ec", "ink": "#1d1b19", "accent": "#9a6b3f" },
+  "currency": "EUR",
+  "pricesIncludeVat": true,
+  "whatsapp": "+306900000000",
+  "email": "hello@example.gr",
+  "defaultLanguage": "el",
+  "offersBaseUrl": "https://offers.example.gr",
+  "packages": [
+    {
+      "id": "silver",
+      "name": { "el": "Silver", "en": "Silver" },
+      "price": 900,
+      "includes": {
+        "el": ["Κάλυψη 6 ωρών, από την προετοιμασία ως το τέλος της τελετής", "300 επεξεργασμένες φωτογραφίες", "Ψηφιακή γκαλερί για να τις κατεβάσετε και να τις μοιραστείτε"],
+        "en": ["6 hours, from getting ready to the end of the ceremony", "300 edited photos", "Online gallery to download and share"]
+      }
+    },
+    {
+      "id": "gold",
+      "name": { "el": "Gold", "en": "Gold" },
+      "price": 1400,
+      "includes": {
+        "el": ["Κάλυψη 10 ωρών, μέχρι τον πρώτο χορό", "500 επεξεργασμένες φωτογραφίες", "Ψηφιακή γκαλερί", "Άλμπουμ 30x30 με 40 σελίδες"],
+        "en": ["10 hours, through to the first dance", "500 edited photos", "Online gallery", "30x30 album, 40 pages"]
+      }
+    },
+    {
+      "id": "platinum",
+      "name": { "el": "Platinum", "en": "Platinum" },
+      "price": 2000,
+      "includes": {
+        "el": ["Κάλυψη όλης της μέρας, μέχρι το τέλος της δεξίωσης", "Δεύτερος φωτογράφος", "700 επεξεργασμένες φωτογραφίες", "Ψηφιακή γκαλερί", "Άλμπουμ 30x30 με 60 σελίδες"],
+        "en": ["The whole day, until the end of the reception", "Second photographer", "700 edited photos", "Online gallery", "30x30 album, 60 pages"]
+      }
+    }
+  ],
+  "addons": [
+    { "id": "drone", "name": { "el": "Λήψεις με drone", "en": "Drone shots" }, "price": 200 },
+    { "id": "prewedding", "name": { "el": "Φωτογράφηση πριν από τον γάμο", "en": "Pre-wedding shoot" }, "price": 250 },
+    { "id": "parents-albums", "name": { "el": "Δύο μικρά άλμπουμ για τους γονείς", "en": "Two small albums for the parents" }, "price": 300 },
+    { "id": "next-day", "name": { "el": "Φωτογράφηση την επόμενη μέρα", "en": "Day-after shoot" }, "price": 350 }
+  ],
+  "portfolio": [
+    { "file": "wedding-cliff.jpg", "types": ["wedding"] },
+    { "file": "wedding-hands.jpg", "types": ["wedding"] },
+    { "file": "wedding-ceremony.jpg", "types": ["wedding", "baptism"] }
+  ],
+  "terms": {
+    "el": [
+      "Η ημερομηνία κλείνει με προκαταβολή 30%.",
+      "Το υπόλοιπο εξοφλείται μια εβδομάδα πριν από τον γάμο.",
+      "Οι φωτογραφίες παραδίδονται σε 8 εβδομάδες, το άλμπουμ σε 12.",
+      "Η μετακίνηση μέσα στον νομό Ηρακλείου περιλαμβάνεται στην τιμή."
+    ],
+    "en": [
+      "A 30% deposit reserves your date.",
+      "The balance is due one week before the wedding.",
+      "Photos are delivered within 8 weeks, the album within 12.",
+      "Travel within the Heraklion area is included."
+    ]
+  }
+}

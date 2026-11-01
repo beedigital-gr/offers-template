@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "slug": "katerina-giorgos-r4t8wm",
+  "client": { "names": "Κατερίνα & Γιώργος", "email": "", "phone": "" },
+  "event": { "type": "wedding", "date": "2027-06-12", "venue": "Αγία Πελαγία, Ηράκλειο" },
+  "language": "el",
+  "packages": [ { "id": "silver" }, { "id": "gold", "price": 1300 }, { "id": "platinum" } ],
+  "recommended": "gold",
+  "addons": ["drone"],
+  "photos": ["portfolio:wedding-cliff.jpg", "portfolio:wedding-hands.jpg", "portfolio:wedding-ceremony.jpg"],
+  "cover": "portfolio:wedding-cliff.jpg",
+  "message": "Κατερίνα, Γιώργο, χάρηκα πολύ που τα είπαμε την Πέμπτη.\n\nΣας ετοίμασα τρεις επιλογές για τις 12 Ιουνίου. Το Gold σάς το αφήνω στα 1.300 €, όπως το συζητήσαμε. Αν θέλετε να αλλάξουμε κάτι, στείλτε μου.",
+  "status": "sent",
+  "validUntil": "2027-03-31",
+  "booked": null,
+  "depositLink": "",
+  "notes": "Μας βρήκαν από το Instagram. Θα αποφασίσουν μέχρι τα Χριστούγεννα."
+}

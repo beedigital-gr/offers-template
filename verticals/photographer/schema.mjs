@@ -3,7 +3,9 @@ import { isHttpsUrl } from '../../lib/links.mjs';
 
 export const statuses = ['draft', 'sent', 'booked', 'lost'];
 
-const isPrice = (v) => typeof v === 'number' && Number.isFinite(v) && v >= 0;
+const MAX_PRICE = 1_000_000;
+const isPrice = (v) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= MAX_PRICE;
+const PRICE_RULE = 'must be a number from 0 to 1,000,000';
 const isTexts = (v) => isObject(v) && LANGUAGES.every((l) => typeof v[l] === 'string');
 const isTextLists = (v) => isObject(v) && LANGUAGES.every((l) => Array.isArray(v[l]) && v[l].every((s) => typeof s === 'string'));
 
@@ -23,7 +25,7 @@ function checkCatalog(list, field, add, { extra }) {
     if (!isText(item.id)) add(`${at}.id`, `must be text, got ${show(item.id)}`);
     else if (seen.has(item.id)) add(`${at}.id`, `${show(item.id)} is listed twice`);
     else seen.add(item.id);
-    if (!isPrice(item.price)) add(`${at}.price`, `must be a number ≥ 0, got ${show(item.price)}`);
+    if (!isPrice(item.price)) add(`${at}.price`, `${PRICE_RULE}, got ${show(item.price)}`);
     if (!isTexts(item.name)) add(`${at}.name`, 'must be { "el": text, "en": text }');
     extra?.(item, at);
   });
@@ -106,7 +108,7 @@ export function validate(offer, brand) {
       if (!brandPackages.has(id)) return add(`packages[${i}].id`, `unknown package ${show(id)}`);
       if (offerPackages.has(id)) add(`packages[${i}].id`, `${show(id)} is listed twice`);
       offerPackages.add(id);
-      if (p.price !== undefined && !isPrice(p.price)) add(`packages[${i}].price`, `must be a number ≥ 0, got ${show(p.price)}`);
+      if (p.price !== undefined && !isPrice(p.price)) add(`packages[${i}].price`, `${PRICE_RULE}, got ${show(p.price)}`);
     });
   }
 

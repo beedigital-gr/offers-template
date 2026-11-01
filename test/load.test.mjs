@@ -132,3 +132,13 @@ test('loadBrand: a leading BOM is stripped', () => {
   assert.deepEqual(errors, []);
   assert.equal(brand.name, 'Studio Name');
 });
+
+test('loadOffers: only README, README.md and README.txt are ignored, not a slug starting with "readme"', () => {
+  const root = tempRoot();
+  writeFile(root, 'offers/readme-anna-k3x9qb.json', offerJson('readme-anna-k3x9qb'));
+  writeFile(root, 'offers/README.md', 'notes');
+  writeFile(root, 'offers/readme', 'notes');
+  const { offers, errors } = loadOffers(root);
+  assert.deepEqual(errors, []);
+  assert.ok(offers.some((o) => o.slug === 'readme-anna-k3x9qb'), JSON.stringify(offers.map((o) => o.slug)));
+});

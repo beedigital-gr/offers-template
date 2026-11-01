@@ -5,6 +5,7 @@ import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rm
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { athensToday, build, dateClashes } from '../build.mjs';
+import { renderOffer } from '../lib/render-offer.mjs';
 import { OK, readJson, tempRoot, writeFile } from './helpers.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -357,14 +358,14 @@ test('tree check: offer.css missing → error, nothing swapped', () => {
   assertUntouched(root, before);
 });
 
-test('renderOffer throwing on one of several offers: error names the file, old out untouched, no temp dir', () => {
+test('an absurd price on one of several offers: error names the file and field, old out untouched, no temp dir', () => {
   const root = tempRoot();
   writeOffer(root, ELENI, { photos: [], packages: [{ id: 'gold', price: 1e307 }], recommended: 'gold' });
   const before = withLastGood(root);
   const result = run(root);
   assert.equal(result.written, 0);
   assert.equal(result.errors.length, 1, JSON.stringify(result.errors));
-  assert.match(result.errors[0], new RegExp(`^offers/${ELENI}\\.json: .*too large`));
+  assert.match(result.errors[0], new RegExp(`^offers/${ELENI}\\.json: packages\\[0\\]\\.price: must be a number from 0 to 1,000,000`));
   assertUntouched(root, before);
 });
 
@@ -451,4 +452,27 @@ test('athensToday: Athens calendar date, across both 2026 DST changes', () => {
     '2026-10-25T22:00:00Z': '2026-10-26',
   };
   for (const [utc, athens] of Object.entries(cases)) assert.equal(athensToday(new Date(utc)), athens, utc);
+});
+
+test('render throwing for one offer: only that file is named, nothing written, old out untouched, no temp dir', () => {
+  const root = twoOffers();
+  const before = withLastGood(root);
+  const render = (offer, ...rest) => {
+    if (offer.slug === MARIA) throw new Error('boom');
+    return renderOffer(offer, ...rest);
+  };
+  const result = build({ root, out: 'dist', today: TODAY, render });
+  assert.deepEqual(result.errors, [`offers/${MARIA}.json: boom`]);
+  assert.equal(result.written, 0);
+  assertUntouched(root, before);
+});
+
+test('render throwing for every offer: each file is named', () => {
+  const root = twoOffers();
+  const before = withLastGood(root);
+  const render = (offer) => { throw new Error(`boom ${offer.slug}`); };
+  const result = build({ root, out: 'dist', today: TODAY, render });
+  assert.deepEqual(result.errors.sort(), [`offers/${ELENI}.json: boom ${ELENI}`, `offers/${MARIA}.json: boom ${MARIA}`].sort());
+  assert.equal(result.written, 0);
+  assertUntouched(root, before);
 });

@@ -57,7 +57,7 @@ function indexPage(brand) {
 }
 
 // Rendered in memory first, so a throw leaves the disk untouched.
-function renderAll(offers, brand, root, today) {
+function renderAll(offers, brand, root, today, render) {
   const pages = [];
   const errors = [];
   for (const offer of offers) {
@@ -66,7 +66,7 @@ function renderAll(offers, brand, root, today) {
         from: resolvePhoto(entry, offer.slug, root).path,
         name: photoOutputName(entry),
       }));
-      pages.push({ file: offer[FILE], slug: offer.slug, html: renderOffer(offer, brand, { today }), photos });
+      pages.push({ file: offer[FILE], slug: offer.slug, html: render(offer, brand, { today }), photos });
     } catch (e) {
       errors.push(`${offer[FILE]}: ${message(e)}`);
     }
@@ -150,13 +150,13 @@ function swapInto(tmp, out) {
   }
 }
 
-function buildUnsafe({ root, out, today, allowEmpty, templates }) {
+function buildUnsafe({ root, out, today, allowEmpty, includeExample, templates, render }) {
   const warnings = [];
   const fail = (errors) => ({ errors, warnings, written: 0 });
   if (!isIsoDate(today)) return fail([`build: today must be a real date YYYY-MM-DD, got ${JSON.stringify(today)}`]);
 
   const { brand, errors: brandErrors } = loadBrand(root);
-  const { offers, errors: offerErrors } = loadOffers(root);
+  const { offers, errors: offerErrors } = loadOffers(root, { includeExample });
   const errors = [...brandErrors, ...offerErrors];
   if (brand) errors.push(...validateAll(offers, brand, root));
   if (errors.length) return fail(errors);
@@ -164,7 +164,7 @@ function buildUnsafe({ root, out, today, allowEmpty, templates }) {
 
   for (const { date, slugs } of dateClashes(offers)) warnings.push(`event.date ${date}: ${slugs.length} offers on the same day: ${slugs.join(', ')}`);
 
-  const { pages, errors: renderErrors } = renderAll(offers, brand, root, today);
+  const { pages, errors: renderErrors } = renderAll(offers, brand, root, today, render);
   if (renderErrors.length) return fail(renderErrors);
 
   const outDir = resolve(root, out);
@@ -185,9 +185,9 @@ function buildUnsafe({ root, out, today, allowEmpty, templates }) {
 }
 
 // Never throws: any failure comes back as an error and nothing is swapped in.
-export function build({ root, out, today, allowEmpty = false, templates = TEMPLATES }) {
+export function build({ root, out, today, allowEmpty = false, includeExample = false, templates = TEMPLATES, render = renderOffer }) {
   try {
-    return buildUnsafe({ root, out, today, allowEmpty, templates });
+    return buildUnsafe({ root, out, today, allowEmpty, includeExample, templates, render });
   } catch (e) {
     return { errors: [`build: ${message(e)}`], warnings: [], written: 0 };
   }

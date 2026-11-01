@@ -409,3 +409,23 @@ test('offer package entries allow only id and price', () => {
   expectError(check({ packages: [{ id: 'silver' }, { id: 'gold', prce: 1700 }] }), 'packages[1].prce');
   assert.deepEqual(check({ packages: [{ id: 'silver' }, { id: 'gold', price: 1700 }] }), []);
 });
+
+test('prices are capped at 1,000,000: brand packages, brand addons, offer overrides', () => {
+  const [p0] = brand.packages;
+  const [a0] = brand.addons;
+  assert.deepEqual(validateBrand({ ...brand, packages: [{ ...p0, price: 1_000_000 }] }, OK), []);
+  assert.deepEqual(validateBrand({ ...brand, addons: [{ ...a0, price: 1_000_000 }] }, OK), []);
+  assert.deepEqual(check({ packages: [{ id: 'gold', price: 1_000_000 }] }), []);
+  for (const price of [1_000_000.01, 1e307]) {
+    const errors = brandError({ ...brand, packages: [{ ...p0, price }] }, 'packages[0].price');
+    assert.match(errors.find((e) => e.startsWith(`${BF}: packages[0].price: `)), /from 0 to 1,000,000/);
+    brandError({ ...brand, addons: [{ ...a0, price }] }, 'addons[0].price');
+    expectError(check({ packages: [{ id: 'gold', price }] }), 'packages[0].price');
+  }
+});
+
+test('non-finite numbers are shown as themselves in errors, not as null', () => {
+  const errors = check({ packages: [{ id: 'gold', price: Infinity }] });
+  assert.ok(errors.some((e) => e.endsWith('packages[0].price: must be a number from 0 to 1,000,000, got Infinity')), JSON.stringify(errors));
+  assert.ok(check({ packages: [{ id: 'gold', price: NaN }] }).some((e) => e.endsWith('got NaN')));
+});
