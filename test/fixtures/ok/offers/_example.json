@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "slug": "example-couple-abc123",
+  "client": { "names": "Maria & Nikos", "email": "", "phone": "" },
+  "event": { "type": "wedding", "date": "2027-06-14", "venue": "Agia Pelagia" },
+  "language": "el",
+  "packages": [ { "id": "silver" }, { "id": "gold", "price": 1700 }, { "id": "platinum" } ],
+  "recommended": "gold",
+  "addons": ["drone"],
+  "photos": [],
+  "cover": "portfolio:03.jpg",
+  "message": "",
+  "status": "sent",
+  "validUntil": "2026-12-31",
+  "booked": null,
+  "depositLink": "",
+  "notes": ""
+}

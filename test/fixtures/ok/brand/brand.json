@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "vertical": "photographer",
+  "name": "Studio Name",
+  "logo": "logo.svg",
+  "colors": { "bg": "#f6f2ec", "ink": "#1d1b19", "accent": "#9a6b3f" },
+  "currency": "EUR",
+  "pricesIncludeVat": true,
+  "whatsapp": "+306900000000",
+  "email": "hello@studio.gr",
+  "defaultLanguage": "el",
+  "offersBaseUrl": "https://offers.studio.gr",
+  "packages": [
+    { "id": "silver", "name": { "el": "Silver", "en": "Silver" }, "price": 1200, "includes": { "el": ["6 ώρες"], "en": ["6 hours"] } },
+    { "id": "gold", "name": { "el": "Gold", "en": "Gold" }, "price": 1800, "includes": { "el": ["8 ώρες"], "en": ["8 hours"] } },
+    { "id": "platinum", "name": { "el": "Platinum", "en": "Platinum" }, "price": 2400, "includes": { "el": ["Όλη μέρα"], "en": ["Full day"] } }
+  ],
+  "addons": [
+    { "id": "drone", "name": { "el": "Drone", "en": "Drone" }, "price": 250 },
+    { "id": "album", "name": { "el": "Άλμπουμ", "en": "Album" }, "price": 400 }
+  ],
+  "portfolio": [
+    { "file": "03.jpg", "types": ["wedding", "baptism"] },
+    { "file": "04.JPEG", "types": ["baptism"] }
+  ],
+  "chatgptProjectUrl": "https://chatgpt.com/g/g-p-example/project",
+  "terms": { "el": ["Προκαταβολή 30%"], "en": ["30% deposit"] }
+}
