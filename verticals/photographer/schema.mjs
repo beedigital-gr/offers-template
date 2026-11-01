@@ -96,6 +96,11 @@ export function validate(offer, brand) {
   } else {
     offer.packages.forEach((p, i) => {
       const id = isObject(p) ? p.id : undefined;
+      if (isObject(p)) {
+        for (const key of Object.keys(p)) {
+          if (key !== 'id' && key !== 'price') add(`packages[${i}].${key}`, 'unknown field (only "id" and "price" are allowed)');
+        }
+      }
       if (!isText(id)) return add(`packages[${i}].id`, `must be a package id, got ${show(id)}`);
       if (!brandPackages.has(id)) return add(`packages[${i}].id`, `unknown package ${show(id)}`);
       if (offerPackages.has(id)) add(`packages[${i}].id`, `${show(id)} is listed twice`);

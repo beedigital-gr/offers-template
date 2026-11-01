@@ -377,3 +377,35 @@ test('validateBrand: portfolio must be a list without duplicate files', () => {
   for (const portfolio of [null, undefined, {}, 'x']) brandError({ ...brand, portfolio }, 'portfolio');
   brandError({ ...brand, portfolio: [...brand.portfolio, { file: '03.jpg', types: [] }] }, 'portfolio[2].file');
 });
+
+test('validateBrand: whatsapp and email must be usable when set', () => {
+  for (const whatsapp of ['6900000000', '+30 abc', '+123']) brandError({ ...brand, whatsapp }, 'whatsapp');
+  for (const email of ['hello', 'a b@c.gr', 'a@b']) brandError({ ...brand, email }, 'email');
+  assert.deepEqual(validateBrand({ ...brand, whatsapp: '' }, OK), []);
+  assert.deepEqual(validateBrand({ ...brand, email: '' }, OK), []);
+  assert.deepEqual(validateBrand({ ...brand, whatsapp: '0030 6900000000' }, OK), []);
+});
+
+test('validateBrand: at least one of whatsapp/email is usable', () => {
+  const errors = brandError({ ...brand, whatsapp: '', email: '' }, 'whatsapp');
+  assert.ok(errorMatching(errors, BF, 'whatsapp', /email/), JSON.stringify(errors));
+  brandError({ ...brand, whatsapp: '6900000000', email: '' }, 'whatsapp');
+});
+
+test('validateBrand: currency is 3 uppercase letters', () => {
+  for (const currency of ['eur', 'EURO', 'EU', '', 'E1R']) brandError({ ...brand, currency }, 'currency');
+  assert.deepEqual(validateBrand({ ...brand, currency: 'USD' }, OK), []);
+});
+
+test('validateBrand: chatgptProjectUrl is optional, else https chatgpt.com without hash', () => {
+  const { chatgptProjectUrl, ...without } = brand;
+  assert.deepEqual(validateBrand(without, OK), []);
+  for (const url of ['', 5, null, 'http://chatgpt.com/g/x', 'https://evil.com/g/x', 'https://chatgpt.com/g/x#a']) {
+    brandError({ ...brand, chatgptProjectUrl: url }, 'chatgptProjectUrl');
+  }
+});
+
+test('offer package entries allow only id and price', () => {
+  expectError(check({ packages: [{ id: 'silver' }, { id: 'gold', prce: 1700 }] }), 'packages[1].prce');
+  assert.deepEqual(check({ packages: [{ id: 'silver' }, { id: 'gold', price: 1700 }] }), []);
+});
