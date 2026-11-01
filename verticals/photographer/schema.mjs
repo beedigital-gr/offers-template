@@ -1,4 +1,5 @@
 import { LANGUAGES, isObject, isText, show } from '../../lib/record.mjs';
+import { isHttpsUrl } from '../../lib/links.mjs';
 
 export const statuses = ['draft', 'sent', 'booked', 'lost'];
 
@@ -116,6 +117,10 @@ export function validate(offer, brand) {
   checkAddonList(offer.addons ?? [], 'addons', brandAddons, add);
 
   if (offer.cover === undefined || offer.cover === null || offer.cover === '') add('cover', 'is required');
+
+  if (offer.depositLink !== undefined && offer.depositLink !== '' && !isHttpsUrl(offer.depositLink)) {
+    add('depositLink', `must be empty or a https:// link without spaces, got ${show(offer.depositLink)}`);
+  }
 
   if (!isDate(offer.validUntil)) add('validUntil', `must be a real date YYYY-MM-DD, got ${show(offer.validUntil)}`);
 
