@@ -26,7 +26,8 @@ You work through the GitHub plugin. Cloudflare publishes the site when the photo
 3. Read the `check` result on the PR. If it failed, read its log, fix the file, push to the same
    branch, read the check again.
 4. When green, reply in the photographer's language with:
-   - the Cloudflare preview link, copied from the Cloudflare comment on the PR,
+   - the preview: the "Preview URL" from the Cloudflare comment on the PR plus `/<slug>/`
+     (e.g. `https://0f65.offers.pages.dev/katerina-giorgos-r4t8wm/`); the bare URL is an empty page,
    - the link the client will get after Merge: `<offersBaseUrl>/<slug>/`,
    - "Tap Merge when you are happy with it."
 5. Never merge yourself. Never say it is live before the photographer has merged.
