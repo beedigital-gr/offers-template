@@ -311,7 +311,8 @@ test('CLI: zero offers exits 1 with the reason; --allow-empty exits 0', () => {
   const res = cli(root);
   assert.equal(res.status, 1);
   assert.match(res.stderr, /offers\/: no offers to build/);
-  assert.match(res.stderr, /--allow-empty/);
+  assert.match(res.stderr, /expected until your first offer is merged/);
+  assert.doesNotMatch(res.stderr, /--allow-empty/, 'the production hint must not suggest the flag');
   assert.ok(!existsSync(join(root, 'dist')));
   const allowed = cli(root, ['--allow-empty']);
   assert.equal(allowed.status, 0, allowed.stderr);

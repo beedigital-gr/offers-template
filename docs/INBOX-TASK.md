@@ -5,16 +5,17 @@ reply draft in the same Gmail thread. It never sends anything. The photographer 
 taps Merge, puts the link in the draft and sends it.
 
 ## Setup notes
-- Create it in ChatGPT → Scheduled → Create, inside the Offers Project if the form allows it.
-  Repeat: every 1 hour. Time zone: Europe/Athens.
+- There is no form: in a new chat inside the Offers Project, paste the prompt and ask for it to run
+  every hour, Europe/Athens. The task lives in that chat and notifies the phone. It can be paused
+  from the chat, but deleted only on chatgpt.com/scheduled.
 - Paste one of the two prompts below, in the photographer's language, and replace `<owner>/<repo>`
   with their GitHub repo. Both prompts say the same thing. They do not rely on the Project
   instructions, because a scheduled task may not read them.
 - Two Gmail labels: `Offers/new` (put on inquiries by a Gmail filter) and `Offers/needs-you` (put
   on by the task when a mail needs the photographer). In Gmail search they are written
   `offers-new` and `offers-needs-you`. See `docs/SETUP.md`.
-- Gmail and GitHub plugins are set to "Always allow" once at setup, or the hourly run stops on a
-  permission prompt.
+- At setup, one "check my inquiries" run on a test inquiry shows every Gmail and GitHub prompt
+  once. Tap "Always allow" on each, or the hourly run stops on a permission prompt.
 - The same flow on demand: in the Offers Project, write "check my inquiries".
 
 ## Prompt (English)

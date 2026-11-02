@@ -209,7 +209,7 @@ if (isMain) {
   for (const e of errors) console.error(`error: ${e}`);
   for (const w of warnings) console.warn(`warning: ${w}`);
   if (errors.length) {
-    if (errors.includes(NO_OFFERS)) console.error('Building with no offers would empty the live site, so the build stops. A repo with no offers yet: node build.mjs --allow-empty');
+    if (errors.includes(NO_OFFERS)) console.error('No offers yet, so nothing is published and the live site stays as it was. This is expected until your first offer is merged. Do not change the build command.');
     console.error(`build failed: ${errors.length} error(s), nothing written`);
     process.exit(1);
   }
