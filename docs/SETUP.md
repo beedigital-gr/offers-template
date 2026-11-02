@@ -21,9 +21,11 @@ Everything is created in the photographer's name, with them. At the end BeeDigit
 - [ ] Cloudflare Pages → Settings → Builds: preview deployments on for all non-production
       branches, and PR comments on (the Cloudflare GitHub app posts the preview link). The chat
       reads the preview link from that comment, so without it every reply stops short.
-- [ ] Protect `main` in GitHub: a branch ruleset that requires a pull request and the `check`
-      status before merging. If their GitHub plan cannot enforce rulesets on a private repo, write
-      it in the client record as an accepted risk (the chat is told never to commit to `main`).
+- [ ] Protect `main` in GitHub: a branch ruleset that requires a pull request before merging. Do
+      not make `check` a required status: a pull request opened by the update workflow
+      (`GITHUB_TOKEN`) never starts `check`, so a required `check` would block every template
+      update. If their GitHub plan cannot enforce rulesets on a private repo, write it in the client
+      record as an accepted risk (the chat is told never to commit to `main`).
 - [ ] Custom domain on the Pages project: `offers.<domain>`, a CNAME at their DNS host. Their DNS
       does not have to move to Cloudflare.
 
@@ -46,7 +48,8 @@ Everything is created in the photographer's name, with them. At the end BeeDigit
 ## Template files
 These are overwritten by upstream updates; neither the photographer nor the chat edits them:
 `build.mjs`, `lib/`, `templates/`, `verticals/`, `test/`, `test-template/`, `scripts/`,
-`docs/`, `.github/`, `AGENTS.md`, `package.json`, `.node-version`, `UPSTREAM`. The photographer owns
+`docs/`, `.github/`, `AGENTS.md`, `package.json`, `.node-version`, `UPSTREAM`. The update workflow
+copies all of them except `.github/workflows/`, which BeeDigital copies by hand. The photographer owns
 `offers/`, `photos/` and `brand/`. `test-template/` (the sample-data self-test) runs only in
 `beedigital-gr/offers-template`, so deleting the samples does not turn their checks red.
 
@@ -95,8 +98,24 @@ These are overwritten by upstream updates; neither the photographer nor the chat
 
 ## Hand over
 - [ ] Remove BeeDigital from their GitHub, Cloudflare and ChatGPT.
-- [ ] Confirm the upstream update workflow is enabled in their repo (Actions tab).
+- [ ] The `upstream-update` workflow is enabled in Actions, and Settings → Actions → General →
+      "Allow GitHub Actions to create and approve pull requests" is on.
 - [ ] Log the interaction and update the client README the same day.
+
+## Applying a needs-help template update
+`beedigital-gr/offers-template` must stay public: every photographer repo reads its releases and
+clones it without a login. If it goes private or is renamed, the weekly run finds no release and
+quietly does nothing.
+Every Monday the `upstream-update` workflow opens or refreshes a `Template update vX.Y.Z` pull
+request. Its tests and build run inside the workflow and the result is in the pull request body.
+Nobody merges it blindly, and the chat never merges it. A closed, unmerged update is not reopened;
+the next release opens a new one. A failed run opens an issue (or comments on the open one) titled
+"Template update failed".
+
+When the pull request carries the `needs-help` label, BeeDigital finishes it. If the body lists
+workflow files, copy them by hand from the upstream tag onto the `template-update` branch (delete
+the ones upstream dropped), then merge. If the body says the tests or build failed, look at the
+failure before merging anything.
 
 ## Template checks Mike runs once (not per photographer)
 - [x] **Phone test (plan Task 6 Step 2b).** Passed 2026-11-02. On the spike repo, in a ChatGPT Project holding

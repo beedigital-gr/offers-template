@@ -8,6 +8,8 @@ rule, the offer JSON shape, booked and lost, photos, and what to do when the che
 Template files, never edited from a photographer's repo: `build.mjs`, `lib/`, `templates/`,
 `verticals/`, `test/`, `test-template/`, `scripts/`, `docs/`, `.github/`, `AGENTS.md`,
 `package.json`, `.node-version`, `UPSTREAM`. Upstream updates overwrite them.
+`.github/workflows/` is the exception: BeeDigital updates it by hand. The rest of `.github/` is
+copied automatically. Never merge a `Template update` pull request; BeeDigital merges those.
 
 On a laptop you can also run the check yourself before pushing:
 

@@ -1,0 +1,227 @@
+name: upstream-update
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+concurrency:
+  group: upstream-update
+  cancel-in-progress: false
+jobs:
+  update:
+    if: github.repository != 'beedigital-gr/offers-template'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      BRANCH: template-update
+      BASE: ${{ github.event.repository.default_branch }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+
+      # Pinned so the synced (newer) script cannot replace the one running.
+      - name: Pin the sync script
+        run: |
+          cp scripts/upstream-sync.mjs "$RUNNER_TEMP/upstream-sync.mjs"
+          echo "SYNC=$RUNNER_TEMP/upstream-sync.mjs" >> "$GITHUB_ENV"
+
+      - name: Latest upstream release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          up="$(node "$SYNC" repo)"
+          if ! gh api "repos/$up/releases/latest" > "$RUNNER_TEMP/release.json" 2> "$RUNNER_TEMP/release.err"; then
+            if grep -q 'HTTP 404' "$RUNNER_TEMP/release.err"; then
+              echo "::notice::No release found for $up (or the upstream repo is private or renamed); nothing to update."
+              echo "update=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            cat "$RUNNER_TEMP/release.err" >&2
+            exit 1
+          fi
+          tag="$(jq -r '.tag_name' "$RUNNER_TEMP/release.json")"
+          jq -r '.body // ""' "$RUNNER_TEMP/release.json" > "$RUNNER_TEMP/notes.md"
+          update="$(node "$SYNC" should-update "$tag")"
+          echo "Upstream $up latest $tag, update: $update"
+          {
+            echo "repo=$up"
+            echo "tag=$tag"
+            echo "update=$update"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Pull request state
+        id: pr
+        if: steps.release.outputs.update == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state all --limit 100 \
+            --json number,title,state > "$RUNNER_TEMP/prs.json"
+          action="$(node "$SYNC" pr-action "$TAG" "$RUNNER_TEMP/prs.json")"
+          go=true
+          if [ "$action" = skip ]; then
+            echo "::notice::Template update $TAG was closed without merging; waiting for a newer release."
+            go=false
+          fi
+          number="$(jq -r '[.[] | select(.state == "OPEN")][0].number // ""' "$RUNNER_TEMP/prs.json")"
+          {
+            echo "action=$action"
+            echo "number=$number"
+            echo "go=$go"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Branch state
+        id: branch
+        if: steps.pr.outputs.go == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          remote_sha="$(git -c http.extraheader="AUTHORIZATION: basic $auth" ls-remote --heads origin "refs/heads/$BRANCH" | cut -f1)"
+          if [ -n "$remote_sha" ]; then
+            git -c http.extraheader="AUTHORIZATION: basic $auth" fetch --depth 1 origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"
+            git show "origin/$BRANCH:UPSTREAM" > "$RUNNER_TEMP/branch-UPSTREAM"
+            action="$(node "$SYNC" branch-action "$TAG" "$RUNNER_TEMP/branch-UPSTREAM")"
+          else
+            action="$(node "$SYNC" branch-action "$TAG")"
+          fi
+          echo "Branch $BRANCH: ${remote_sha:-absent}, action: $action"
+          {
+            echo "action=$action"
+            echo "remote-sha=$remote_sha"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Fetch the release
+        if: steps.pr.outputs.go == 'true'
+        env:
+          UP: ${{ steps.release.outputs.repo }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: git clone --depth 1 --branch "$TAG" "https://github.com/$UP" "$RUNNER_TEMP/up"
+
+      - name: Prepare the branch
+        if: steps.pr.outputs.go == 'true'
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+          ACTION: ${{ steps.branch.outputs.action }}
+        run: |
+          if [ "$ACTION" = rebuild ]; then
+            git checkout -B "$BRANCH"
+            node "$SYNC" sync "$RUNNER_TEMP/up"
+            node "$SYNC" bump "$TAG"
+          else
+            git checkout -B "$BRANCH" "origin/$BRANCH"
+            node "$SYNC" diff "$RUNNER_TEMP/up"
+          fi
+
+      - name: Tests and build
+        id: tests
+        if: steps.pr.outputs.go == 'true'
+        continue-on-error: true
+        run: |
+          npm test
+          offers="$(node "$SYNC" has-offers)"
+          case "$offers" in
+            true) node build.mjs ;;
+            false) node build.mjs --allow-empty ;;
+            *) echo "has-offers printed \"$offers\"" >&2; exit 1 ;;
+          esac
+
+      - name: Pull request body
+        id: body
+        if: steps.pr.outputs.go == 'true'
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+          PASSED: ${{ steps.tests.outcome == 'success' }}
+        run: node "$SYNC" body "$TAG" "$RUNNER_TEMP/notes.md" "$PASSED" > "$RUNNER_TEMP/body.md"
+
+      - name: Commit and push
+        id: push
+        if: steps.pr.outputs.go == 'true' && steps.branch.outputs.action == 'rebuild'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          REMOTE_SHA: ${{ steps.branch.outputs.remote-sha }}
+        run: |
+          node "$SYNC" paths > "$RUNNER_TEMP/paths"
+          while IFS= read -r p; do
+            tracked="$(git ls-files -- "$p")"
+            if [ -e "$p" ] || [ -n "$tracked" ]; then git add -A -- "$p"; fi
+          done < "$RUNNER_TEMP/paths"
+          if git diff --cached --quiet; then
+            echo "Nothing changed."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "chore: template update $TAG"
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          if [ -n "$REMOTE_SHA" ]; then
+            git -c http.extraheader="AUTHORIZATION: basic $auth" \
+              push --force-with-lease="refs/heads/$BRANCH:$REMOTE_SHA" origin "$BRANCH"
+          else
+            git -c http.extraheader="AUTHORIZATION: basic $auth" push origin "$BRANCH"
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Open or update the pull request
+        if: >-
+          steps.pr.outputs.go == 'true' &&
+          (steps.branch.outputs.action == 'keep' || steps.push.outputs.changed == 'true')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          PR_ACTION: ${{ steps.pr.outputs.action }}
+          PR: ${{ steps.pr.outputs.number }}
+          NEEDS_HELP: ${{ steps.body.outputs.needs-help }}
+        run: |
+          gh label create needs-help --repo "$GITHUB_REPOSITORY" --force --color B60205 \
+            --description "A template update BeeDigital has to finish"
+          if [ "$PR_ACTION" = edit ]; then
+            gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --title "Template update $TAG" --body-file "$RUNNER_TEMP/body.md"
+          else
+            if ! PR="$(gh pr create --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --base "$BASE" \
+              --title "Template update $TAG" --body-file "$RUNNER_TEMP/body.md")"; then
+              echo "::error::Could not open the pull request. Turn on Settings → Actions → General → \"Allow GitHub Actions to create and approve pull requests\", then run this workflow again."
+              exit 1
+            fi
+          fi
+          labelled="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels --jq '[.labels[].name] | index("needs-help") != null')"
+          label="$(node "$SYNC" label-action "$NEEDS_HELP" "$labelled")"
+          case "$label" in
+            add) gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --add-label needs-help ;;
+            remove) gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label needs-help ;;
+            none) ;;
+            *) echo "label-action printed \"$label\"" >&2; exit 1 ;;
+          esac
+
+      - name: Report the failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          title="Template update failed"
+          issue="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json number,title \
+            --jq "[.[] | select(.title == \"$title\")][0].number // \"\"")"
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --repo "$GITHUB_REPOSITORY" --body "Failed again: $run_url"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" \
+              --body "The weekly template update failed. BeeDigital needs to look: $run_url"
+          fi
