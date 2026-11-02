@@ -43,8 +43,10 @@ everything that needs typing. Their GitHub, Cloudflare, ChatGPT and Gmail stay t
    `photos/_portfolio/CREDITS.md`, add their photos to `photos/_portfolio/`, open a pull request.
    `check` goes green; the red Cloudflare mark next to it is expected until the first offer is
    merged. Merge.
-4. **ChatGPT.** Connect the GitHub app (only their `offers` repo) and the Gmail app. Create a
-   Project named "Offers" and paste `docs/PROJECT-INSTRUCTIONS.md` into its instructions.
+4. **ChatGPT.** Connect the GitHub app (only their `offers` repo) and the Gmail app. Leave Gmail on
+   its default permission, never "Allow all tools": that includes sending mail, which a crafted
+   inquiry could trigger. Create a Project named "Offers" and paste
+   `docs/PROJECT-INSTRUCTIONS.md` into its instructions, with their repo in the `Repo:` line.
 5. **Gmail.** Create the labels `Offers/new` and `Offers/needs-you`. Settings → Filters → Create a
    filter with the prepared criteria → "Apply the label" `Offers/new` and "Never send it to Spam".
    Write the inquiry address in the client record.

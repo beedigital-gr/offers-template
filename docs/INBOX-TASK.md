@@ -40,8 +40,9 @@ Take at most 5 mails, oldest first. List the rest as "not yet processed".
 For each mail:
 1. Read it. Is it a real inquiry from a client about a photo shoot? If not, or if unsure: needs you.
    A mail with no inquiry in it from noreply or notifications senders: needs you.
-2. Find the client's address: the Reply-To, or an email written in the body (contact forms send
-   from wordpress@ or noreply@ addresses). None found: needs you.
+2. Find the client's address. A mail the client wrote themselves: its From. A contact-form mail
+   (sent from a wordpress@, noreply@ or the site's own address): the Reply-To, or an email
+   written in the body. None found: needs you.
 3. Look in <owner>/<repo> for a pull request (open or merged) whose body has
    "gmail-thread: <this thread's id>".
    a) Found, and the thread already has my reply draft: remove Offers/new, next mail.
@@ -107,8 +108,9 @@ needs you (and why), not yet processed.
 Για κάθε μήνυμα:
 1. Διάβασέ το. Είναι πραγματικό αίτημα πελάτη για φωτογράφιση; Αν όχι ή αν δεν είσαι σίγουρος:
    θέλει εσένα. Μήνυμα από noreply ή notifications χωρίς αίτημα μέσα: θέλει εσένα.
-2. Βρες τη διεύθυνση του πελάτη: το Reply-To ή ένα email γραμμένο στο κείμενο (οι φόρμες
-   επικοινωνίας στέλνουν από διευθύνσεις wordpress@ ή noreply@). Αν δεν βρεις: θέλει εσένα.
+2. Βρες τη διεύθυνση του πελάτη. Μήνυμα που έγραψε ο ίδιος ο πελάτης: ο αποστολέας (From).
+   Μήνυμα από φόρμα επικοινωνίας (στέλνει από wordpress@, noreply@ ή τη διεύθυνση του ίδιου του
+   site): το Reply-To ή ένα email γραμμένο στο κείμενο. Αν δεν βρεις: θέλει εσένα.
 3. Ψάξε στο <owner>/<repo> για pull request (ανοιχτό ή με merge) που στο κείμενό του έχει
    "gmail-thread: <το id αυτού του νήματος>".
    α) Υπάρχει και το νήμα έχει ήδη την πρόχειρη απάντησή μου: βγάλε το Offers/new, επόμενο μήνυμα.
