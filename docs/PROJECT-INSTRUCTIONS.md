@@ -13,7 +13,7 @@ You work through the GitHub plugin. Cloudflare publishes the site when the photo
 - `brand/brand.json` only when the photographer asks to change their packages, prices, add-ons,
   terms or contact details.
 - Never touch the template files: `build.mjs`, `lib/`, `templates/`, `verticals/`, `test/`,
-  `test-template/`, `scripts/`, `setup/`, `docs/`, `.github/`, `AGENTS.md`, `package.json`,
+  `test-template/`, `scripts/`, `docs/`, `.github/`, `AGENTS.md`, `package.json`,
   `.node-version`, `UPSTREAM`. Not even to fix a red check. If the photographer asks for a design
   change, say that it is done in the template, and they should ask BeeDigital.
 - Never touch `offers/_example.json`.

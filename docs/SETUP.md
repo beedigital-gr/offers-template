@@ -7,7 +7,7 @@ Everything is created in the photographer's name, with them. At the end BeeDigit
 - [ ] Collect: studio name, WhatsApp number, email, the domain for offers (`offers.<domain>`), who
       runs their DNS, packages with prices and what each includes, add-ons with prices, terms
       (deposit, balance, delivery time, travel), brand colours (or keep the default palette).
-- [ ] Ask them to pick ~20 portfolio photos in Lightroom and tag each with the event types it fits
+- [ ] Ask them to pick ~20 portfolio photos and tag each with the event types it fits
       (`wedding`, `baptism`, ...).
 
 ## Accounts and repo
@@ -32,8 +32,8 @@ Everything is created in the photographer's name, with them. At the end BeeDigit
       `offersBaseUrl` (`https://offers.<domain>`, no trailing slash), packages, add-ons, terms in
       both `el` and `en`. Keep `"vertical": "photographer"`. The studio name is shown as text; there
       is no logo field.
-- [ ] Install `setup/Web Offer Export.lrtemplate` in their Lightroom Classic (Export dialog →
-      Preset → Import). Export the portfolio set with it.
+- [ ] Ask them to export the portfolio set from their own editor: JPEG, sRGB, long edge 2048 px,
+      each at most 1.5 MB. The check rejects a bigger file and names it.
 - [ ] Delete the three sample photos and `photos/_portfolio/CREDITS.md`; upload their export to
       `photos/_portfolio/` (GitHub web upload, batches under 100 files). List every file in
       `brand.portfolio` with its event types.
@@ -45,7 +45,7 @@ Everything is created in the photographer's name, with them. At the end BeeDigit
 
 ## Template files
 These are overwritten by upstream updates; neither the photographer nor the chat edits them:
-`build.mjs`, `lib/`, `templates/`, `verticals/`, `test/`, `test-template/`, `scripts/`, `setup/`,
+`build.mjs`, `lib/`, `templates/`, `verticals/`, `test/`, `test-template/`, `scripts/`,
 `docs/`, `.github/`, `AGENTS.md`, `package.json`, `.node-version`, `UPSTREAM`. The photographer owns
 `offers/`, `photos/` and `brand/`. `test-template/` (the sample-data self-test) runs only in
 `beedigital-gr/offers-template`, so deleting the samples does not turn their checks red.
@@ -99,13 +99,7 @@ These are overwritten by upstream updates; neither the photographer nor the chat
 - [ ] Log the interaction and update the client README the same day.
 
 ## Template checks Mike runs once (not per photographer)
-- [ ] **Phone test (plan Task 6 Step 2b).** On the spike repo, in a ChatGPT Project holding
+- [x] **Phone test (plan Task 6 Step 2b).** Passed 2026-11-02. On the spike repo, in a ChatGPT Project holding
       `PROJECT-INSTRUCTIONS.md`, from the phone: "new offer for Maria & Nikos, wedding 14/6/2027,
       gold". Expect a PR with a valid offer file, check green, the preview link in the reply. Then
       break a field on purpose and confirm the chat reads the red check and fixes it.
-- [ ] **Lightroom preset (plan Task 6 Step 3).** Verify by importing `setup/Web Offer Export.lrtemplate`
-      into Lightroom Classic. Confirm the dialog shows JPEG, quality 75, sRGB, long edge 2048 px, sharpen
-      for screen (standard), metadata "Copyright only". Export one 40 MP RAW and record the file
-      size here; it must be at most 1.5 MB. If Lightroom rejects the file, rebuild the preset in the
-      Export dialog with those settings and save it over this one.
-      Result: _not yet tested_

@@ -6,7 +6,7 @@ it first and follow it exactly: which files you may touch, the branch and pull r
 rule, the offer JSON shape, booked and lost, photos, and what to do when the check fails.
 
 Template files, never edited from a photographer's repo: `build.mjs`, `lib/`, `templates/`,
-`verticals/`, `test/`, `test-template/`, `scripts/`, `setup/`, `docs/`, `.github/`, `AGENTS.md`,
+`verticals/`, `test/`, `test-template/`, `scripts/`, `docs/`, `.github/`, `AGENTS.md`,
 `package.json`, `.node-version`, `UPSTREAM`. Upstream updates overwrite them.
 
 On a laptop you can also run the check yourself before pushing:
